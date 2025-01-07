@@ -1,0 +1,36 @@
+.bookmarked-posts {
+  width: 100%;
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.no-bookmarks {
+  text-align: center;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  width: 850px;
+  margin: 0 auto;
+}
+
+.no-bookmarks p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+@media (max-width: 1050px) {
+  .bookmarked-posts,
+  .no-bookmarks {
+    width: 100%;
+    padding: 20px;
+  }
+} 
