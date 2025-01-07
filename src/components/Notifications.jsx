@@ -1,78 +1,87 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { IoPersonAdd } from 'react-icons/io5';
 import '../styles/Notifications.css';
 
 function Notifications({ userId }) {
   const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userId) return;
 
+    console.log('Fetching notifications for userId:', userId); // Debug log
+
+    // Query notifications for this user
+    const notificationsRef = collection(db, 'notifications');
     const q = query(
-      collection(db, 'notifications'),
+      notificationsRef,
       where('toUserId', '==', userId),
       orderBy('createdAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newNotifications = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
+      console.log('Snapshot received, docs count:', snapshot.docs.length); // Debug log
+      
+      const newNotifications = snapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('Notification data:', data); // Debug log
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date()
+        };
+      });
+      
       setNotifications(newNotifications);
+      setLoading(false);
+      console.log('Processed notifications:', newNotifications); // Debug log
+    }, (error) => {
+      console.error('Error fetching notifications:', error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, [userId]);
 
-  const formatTimeAgo = (date) => {
-    if (!date) return '';
-    const seconds = Math.floor((new Date() - date) / 1000);
-    
-    if (seconds < 60) return 'just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
-  };
+  if (loading) {
+    return <div className="notifications-loading">Loading notifications...</div>;
+  }
 
   return (
-    <div className="notifications">
-      <h2>Notifications</h2>
+    <div className="notifications-container">
+      <h3 className="notifications-title">Notifications</h3>
       {notifications.length === 0 ? (
-        <p className="no-notifications">No notifications yet</p>
+        <div className="no-notifications">No notifications yet</div>
       ) : (
-        <div className="notifications-list">
-          {notifications.map(notification => (
-            <div 
-              key={notification.id} 
-              className={`notification ${notification.read ? '' : 'unread'}`}
-            >
+        notifications.map(notification => (
+          <div key={notification.id} className={`notification-item ${notification.read ? 'read' : 'unread'}`}>
+            <div className="notification-avatar">
               <img 
-                src={notification.fromUserPhoto} 
+                src={notification.fromUserAvatar} 
                 alt={notification.fromUserName} 
-                className="notification-avatar"
+                onError={(e) => {
+                  e.target.src = '/default-avatar.png'; // Add a default avatar image
+                }}
               />
-              <div className="notification-content">
-                <p>
-                  <strong>{notification.fromUserName}</strong>
-                  {notification.type === 'like' && ' liked your post: '}
-                  <span className="notification-post-content">
-                    {notification.postContent}
-                  </span>
-                </p>
-                <span className="notification-time">
-                  {formatTimeAgo(notification.createdAt)}
-                </span>
-              </div>
             </div>
-          ))}
-        </div>
+            <div className="notification-content">
+              <p>
+                <strong>{notification.fromUserName}</strong>
+                {notification.type === 'follow' && ' started following you'}
+              </p>
+              <span className="notification-time">
+                {notification.createdAt.toLocaleDateString()} at {notification.createdAt.toLocaleTimeString()}
+              </span>
+            </div>
+            {notification.type === 'follow' && (
+              <div className="notification-icon">
+                <IoPersonAdd />
+              </div>
+            )}
+          </div>
+        ))
       )}
     </div>
   );

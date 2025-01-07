@@ -1,159 +1,207 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db, auth } from '../firebase';
+import { collection, query, limit, getDocs } from 'firebase/firestore';
+import { Link } from 'react-router-dom';
+import { FiTrendingUp, FiSearch } from 'react-icons/fi';
+import { IoLocationOutline } from 'react-icons/io5';
 import { 
-  IoPersonAddOutline, 
-  IoVideocamOutline,
-  IoTrendingUpOutline,
-  IoCheckmarkCircleOutline
-} from 'react-icons/io5';
-import { AiOutlineSearch } from 'react-icons/ai';
+  FaCode, 
+  FaLaptopCode, 
+  FaGamepad, 
+  FaMusic, 
+  FaFilm,
+  FaGraduationCap,
+  FaUserPlus
+} from 'react-icons/fa';
 import '../styles/RightSidebar.css';
 
 function RightSidebar() {
-  const [suggestedUsers] = useState([
-    {
-      id: 1,
-      name: 'Sarah Wilson',
-      username: '@sarahw',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-      verified: true
+  const [searchTerm, setSearchTerm] = useState('');
+  const [trendingTopics, setTrendingTopics] = useState([
+    { 
+      id: 1, 
+      name: 'JavaScript', 
+      posts: 1234, 
+      location: 'Worldwide',
+      category: 'Programming',
+      categoryIcon: FaCode
     },
-    {
-      id: 2,
-      name: 'Mike Chen',
-      username: '@mikechen',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-      verified: false
+    { 
+      id: 2, 
+      name: 'React', 
+      posts: 890, 
+      location: 'United States',
+      category: 'Web Development',
+      categoryIcon: FaLaptopCode
     },
-    {
-      id: 3,
-      name: 'Emma Davis',
-      username: '@emmad',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-      verified: true
+    { 
+      id: 3, 
+      name: 'Cyberpunk2077', 
+      posts: 756, 
+      location: 'India',
+      category: 'Gaming',
+      categoryIcon: FaGamepad
+    },
+    { 
+      id: 4, 
+      name: 'TaylorSwift', 
+      posts: 654, 
+      location: 'United Kingdom',
+      category: 'Music',
+      categoryIcon: FaMusic
+    },
+    { 
+      id: 5, 
+      name: 'Oppenheimer', 
+      posts: 543, 
+      location: 'Canada',
+      category: 'Entertainment',
+      categoryIcon: FaFilm
+    },
+    { 
+      id: 6, 
+      name: 'AI Learning', 
+      posts: 432, 
+      location: 'Global',
+      category: 'Education',
+      categoryIcon: FaGraduationCap
     }
   ]);
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [trendingTopics] = useState([
-    {
-      id: 1,
-      topic: '#JavaScript',
-      posts: '125K',
-      trending: 'Trending in Tech'
-    },
-    {
-      id: 2,
-      topic: '#AI',
-      posts: '89K',
-      trending: 'Trending Worldwide'
-    },
-    {
-      id: 3,
-      topic: '#React',
-      posts: '45K',
-      trending: 'Trending in Development'
-    }
-  ]);
+  useEffect(() => {
+    const fetchSuggestedUsers = async () => {
+      try {
+        console.log('Starting to fetch users...');
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, limit(5));
+        
+        const querySnapshot = await getDocs(q);
+        console.log('Query snapshot size:', querySnapshot.size);
+        
+        const users = [];
+        querySnapshot.forEach((doc) => {
+          const userData = doc.data();
+          console.log('User data:', userData);
+          users.push({
+            id: doc.id,
+            ...userData
+          });
+        });
 
-  const [liveUsers] = useState([
-    {
-      id: 1,
-      name: 'David Kim',
-      viewers: 1.2,
-      topic: 'Tech Talk',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David'
-    },
-    {
-      id: 2,
-      name: 'Maria Garcia',
-      viewers: 3.4,
-      topic: 'Art & Design',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria'
-    },
-    {
-      id: 3,
-      name: 'Tom Wilson',
-      viewers: 2.8,
-      topic: 'Gaming',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom'
-    }
-  ]);
+        console.log('Processed users:', users);
+        setSuggestedUsers(users);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchSuggestedUsers();
+  }, []);
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    // You can implement search filtering logic here
+  };
 
   return (
     <div className="right-sidebar">
-      <div className="search-container">
-        <AiOutlineSearch className="search-icon" />
-        <input
-          type="text"
-          placeholder="Search users..."
-          className="search-input"
-        />
+      {/* Trending Section First */}
+      <div className="sidebar-section trending">
+        <h3>
+          <FiTrendingUp className="section-icon" />
+          Trending
+        </h3>
+        <div className="search-container">
+          <FiSearch className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search trends..."
+            value={searchTerm}
+            onChange={handleSearch}
+            className="search-input"
+          />
+        </div>
+        {trendingTopics.map(topic => {
+          const CategoryIcon = topic.categoryIcon;
+          return (
+            <div key={topic.id} className="trending-topic">
+              <div className="topic-category">
+                <CategoryIcon className="category-icon" />
+                <span>{topic.category}</span>
+              </div>
+              <div className="topic-header">
+                <span className="topic-name">#{topic.name}</span>
+                <div className="topic-location">
+                  <IoLocationOutline className="location-icon" />
+                  <span>{topic.location}</span>
+                </div>
+              </div>
+              <span className="topic-posts">
+                <FiTrendingUp className="trend-icon" />
+                {topic.posts.toLocaleString()} posts
+              </span>
+            </div>
+          );
+        })}
       </div>
-      {/* Who to Follow Section */}
-      <div className="sidebar-section">
-        <h3>Who to Follow</h3>
-        <div className="suggested-users">
-          {suggestedUsers.map(user => (
-            <div key={user.id} className="suggested-user">
-              <div className="user-info">
-                <img src={user.avatar} alt={user.name} className="user-avatar" />
-                <div className="user-details">
-                  <div className="user-name">
-                    {user.name}
-                    {user.verified && (
-                      <IoCheckmarkCircleOutline className="verified-icon" />
-                    )}
+
+      {/* Who To Follow Section */}
+      <div className="sidebar-section who-to-follow">
+        <h3>
+          <FaUserPlus className="section-icon" />
+          Who to Follow
+        </h3>
+        <div className="who-to-follow-list">
+          {loading ? (
+            <div className="loading-users">Loading suggestions...</div>
+          ) : suggestedUsers.length === 0 ? (
+            <div className="no-suggestions">No suggestions available</div>
+          ) : (
+            <>
+              {suggestedUsers.map(user => (
+                <Link 
+                  to={`/profile/${user.id}`} 
+                  key={user.id} 
+                  className="who-to-follow-item"
+                >
+                  <div className="user-avatar">
+                    <img 
+                      src={user.photoURL || user.avatarUrl || '/default-avatar.png'} 
+                      alt={user.displayName}
+                      onError={(e) => {
+                        e.target.src = '/default-avatar.png';
+                      }}
+                    />
                   </div>
-                  <span className="username">{user.username}</span>
-                </div>
-              </div>
-              <button className="follow-button">
-                <IoPersonAddOutline />
-                <span>Follow</span>
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Trending Section */}
-      <div className="sidebar-section">
-        <h3>Trending</h3>
-        <div className="trending-list">
-          {trendingTopics.map(topic => (
-            <div key={topic.id} className="trending-item">
-              <IoTrendingUpOutline className="trending-icon" />
-              <div className="trending-content">
-                <h4>{topic.topic}</h4>
-                <span className="trending-stats">{topic.posts} posts</span>
-                <span className="trending-category">{topic.trending}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Live Chats Section */}
-      <div className="sidebar-section">
-        <h3>Live Now</h3>
-        <div className="live-users-list">
-          {liveUsers.map(user => (
-            <div key={user.id} className="live-user">
-              <div className="live-user-info">
-                <div className="live-avatar-container">
-                  <img src={user.avatar} alt={user.name} className="user-avatar" />
-                  <div className="live-indicator"></div>
-                </div>
-                <div className="live-user-details">
-                  <div className="live-user-name">{user.name}</div>
-                  <span className="live-topic">{user.topic}</span>
-                </div>
-              </div>
-              <div className="live-stats">
-                <IoVideocamOutline className="live-icon" />
-                <span>{user.viewers}K</span>
-              </div>
-            </div>
-          ))}
+                  <div className="user-info">
+                    <span className="user-name">
+                      {user.displayName || 'Anonymous User'}
+                    </span>
+                    <span className="user-handle">
+                      @{user.username || user.displayName?.toLowerCase().replace(/\s+/g, '') || 'anonymous'}
+                    </span>
+                    <span className="user-bio">
+                      {user.bio?.substring(0, 50) || 'No bio yet'}
+                    </span>
+                  </div>
+                  <button 
+                    className="follow-button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Add follow logic here
+                    }}
+                  >
+                    Follow
+                  </button>
+                </Link>
+              ))}
+              <button className="show-more">Show more</button>
+            </>
+          )}
         </div>
       </div>
     </div>

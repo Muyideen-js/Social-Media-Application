@@ -422,7 +422,7 @@
 /* Add styles for follow button */
 .follow-profile-btn {
   position: absolute;
-  top: 10px;
+  top: -10px;
   right: 30px;
   display: flex;
   align-items: center;
@@ -451,10 +451,18 @@
   border-color: rgba(255, 59, 59, 0.2);
 }
 
-/* Optional: Add hover text change */
+/* Hide "Following" text on hover */
+.following-btn:hover .follow-text {
+  display: none;
+}
+
+/* Show "Unfollow" text on hover */
 .following-btn:hover::after {
   content: 'Unfollow';
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  margin-left: 8px;
+}
+
+/* Keep icon visible */
+.following-btn:hover svg {
+  color: #ff3b3b;
 }

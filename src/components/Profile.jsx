@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { db, storage } from '../firebase';
-import { doc, getDoc, updateDoc, writeBatch, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, writeBatch, arrayUnion, arrayRemove, serverTimestamp, collection, addDoc, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import PostFeed from './PostFeed';
 import { AiOutlineEdit, AiOutlineCamera, AiOutlineSave, AiOutlineClose } from 'react-icons/ai';
 import { IoLocationOutline, IoCalendarOutline, IoLinkOutline, IoPersonAddOutline, IoPersonRemoveOutline } from 'react-icons/io5';
 import LoadingSpinner from './LoadingSpinner';
+import Notifications from './Notifications';
 
 const formatCreatedAt = (createdAt) => {
   if (!createdAt) return 'Recently';
@@ -138,37 +139,60 @@ function Profile({ user, profileUserId }) {
     if (!user || !profileUserId) return;
 
     try {
-      const batch = writeBatch(db);
+      // First, get both user's data
       const userRef = doc(db, 'users', user.uid);
       const profileRef = doc(db, 'users', profileUserId);
+      
+      const [currentUserDoc, profileUserDoc] = await Promise.all([
+        getDoc(userRef),
+        getDoc(profileRef)
+      ]);
+
+      const currentUserData = currentUserDoc.data();
+      const profileUserData = profileUserDoc.data();
+
+      console.log('Creating notification for:', profileUserId); // Debug log
 
       if (isFollowing) {
-        // Unfollow
-        batch.update(userRef, {
+        // Unfollow logic
+        await updateDoc(userRef, {
           following: arrayRemove(profileUserId)
         });
-        batch.update(profileRef, {
+        await updateDoc(profileRef, {
           followers: arrayRemove(user.uid)
         });
       } else {
-        // Follow
-        batch.update(userRef, {
+        // Follow logic
+        await updateDoc(userRef, {
           following: arrayUnion(profileUserId)
         });
-        batch.update(profileRef, {
+        await updateDoc(profileRef, {
           followers: arrayUnion(user.uid)
         });
+
+        // Create notification
+        try {
+          await addDoc(collection(db, 'notifications'), {
+            type: 'follow',
+            fromUserId: user.uid,
+            fromUserName: currentUserData.displayName,
+            fromUserAvatar: currentUserData.avatarUrl || currentUserData.photoURL,
+            toUserId: profileUserId,
+            read: false,
+            createdAt: serverTimestamp()
+          });
+          console.log('Notification created successfully'); // Debug log
+        } catch (notifError) {
+          console.error('Error creating notification:', notifError);
+        }
       }
 
-      await batch.commit();
-      
       // Update local state
       setIsFollowing(!isFollowing);
       setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1);
-      
-      console.log(`Successfully ${isFollowing ? 'unfollowed' : 'followed'} user`);
+
     } catch (error) {
-      console.error('Error toggling follow:', error);
+      console.error('Error in follow/unfollow process:', error);
     }
   };
 
@@ -205,6 +229,22 @@ function Profile({ user, profileUserId }) {
       console.error('Error updating profile:', error);
     }
   };
+
+  // Add real-time listener for profile updates
+  useEffect(() => {
+    if (!profileUserId) return;
+
+    const profileRef = doc(db, 'users', profileUserId);
+    const unsubscribe = onSnapshot(profileRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setProfile(data);
+        setFollowersCount(data.followers?.length || 0);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [profileUserId]);
 
   if (!profile) return <LoadingSpinner />;
 
@@ -265,11 +305,13 @@ function Profile({ user, profileUserId }) {
               >
                 {isFollowing ? (
                   <>
-                    <IoPersonRemoveOutline /> Following
+                    <IoPersonRemoveOutline />
+                    <span className="follow-text">Following</span>
                   </>
                 ) : (
                   <>
-                    <IoPersonAddOutline /> Follow
+                    <IoPersonAddOutline />
+                    <span className="follow-text">Follow</span>
                   </>
                 )}
               </button>
@@ -318,6 +360,12 @@ function Profile({ user, profileUserId }) {
         <h3>Posts</h3>
         <PostFeed userId={profileUserId} />
       </div>
+
+      {isOwnProfile && (
+        <div className="profile-section">
+          <Notifications userId={profileUserId} />
+        </div>
+      )}
     </div>
   );
 }
