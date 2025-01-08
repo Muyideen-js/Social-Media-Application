@@ -21,6 +21,29 @@ function Sidebar({ user }) {
     { icon: IoBookmarkOutline, label: 'Bookmarks', path: '/bookmarks' },
     { icon: IoPersonOutline, label: 'Profile', path: '/profile' },
     { icon: IoEllipsisHorizontalCircleOutline, label: 'More', path: '/more' },
+    {
+      icon: () => null,
+      label: (
+        <button 
+          style={{
+            background: 'linear-gradient(45deg, #FF4B4B, #FF7676)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '24px',
+            padding: '8px 20px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '15px',
+            width: '180px',
+            boxShadow: '0 4px 15px rgba(255, 75, 75, 0.2)',
+            pointerEvents: 'none'
+          }}
+        >
+          Go Live
+        </button>
+      ),
+      path: '/live'
+    }
   ];
 
   const handleSignOut = async () => {

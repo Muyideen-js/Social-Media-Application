@@ -1,58 +1,58 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import CreatePost from '../components/CreatePost';
-import Toast from '../components/Toast';
-import '../styles/Home.css';
+import { db } from '../firebase';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import Post from '../components/Post';
+import CreatePost from '../components/CreatePost';
+import PostFeed from '../components/PostFeed';
 
-function Home() {
+function Home({ user }) {
   const [posts, setPosts] = useState([]);
-  const [toast, setToast] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Listen to posts in real-time
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newPosts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPosts(newPosts);
-    });
+    const fetchAndShufflePosts = async () => {
+      try {
+        const q = query(
+          collection(db, 'posts'),
+          orderBy('createdAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const fetchedPosts = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
 
-    return () => unsubscribe();
+        // Shuffle posts using Fisher-Yates algorithm
+        const shuffledPosts = [...fetchedPosts];
+        for (let i = shuffledPosts.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffledPosts[i], shuffledPosts[j]] = [shuffledPosts[j], shuffledPosts[i]];
+        }
+
+        setPosts(shuffledPosts);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchAndShufflePosts();
   }, []);
 
-  const handlePostCreated = () => {
-    setToast({
-      message: 'Post created successfully!',
-      type: 'success'
-    });
-  };
+  if (loading) {
+    return <div className="loading">Loading posts...</div>;
+  }
 
   return (
-    <div className="home">
-      <CreatePost user={auth.currentUser} onPostCreated={handlePostCreated} />
-
-      <div className="posts-feed">
-        {posts.map(post => (
-          <Post 
-            key={post.id} 
-            post={post} 
-            currentUserId={auth.currentUser.uid} 
-          />
+    <div className="home-container">
+      <CreatePost user={user} />
+      <div className="posts-container">
+        {posts.map((post) => (
+          <Post key={post.id} post={post} />
         ))}
       </div>
-
-      {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
-        />
-      )}
     </div>
   );
 }

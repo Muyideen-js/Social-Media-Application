@@ -1,0 +1,79 @@
+.messages-page {
+  flex: 1;
+  height: 100vh;
+  background: var(--background);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.messages-header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.messages-header h1 {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.messages-search {
+  position: relative;
+  margin-top: 10px;
+}
+
+.messages-search .search-input {
+  width: 100%;
+  padding: 12px 40px;
+  border-radius: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.messages-search .search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+}
+
+.messages-search .search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.messages-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .messages-header {
+    padding: 15px;
+  }
+
+  .messages-header h1 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+  }
+
+  .messages-search .search-input {
+    padding: 10px 35px;
+    font-size: 0.85rem;
+  }
+} 

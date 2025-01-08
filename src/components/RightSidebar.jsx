@@ -102,29 +102,26 @@ function RightSidebar() {
     fetchSuggestedUsers();
   }, []);
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    // You can implement search filtering logic here
-  };
-
   return (
     <div className="right-sidebar">
-      {/* Trending Section First */}
+      {/* Search Input at the very top */}
+      <div className="search-container">
+        <FiSearch className="search-icon" />
+        <input
+          type="text"
+          placeholder="Search users or posts..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
+      </div>
+
+      {/* Trending Section */}
       <div className="sidebar-section trending">
         <h3>
           <FiTrendingUp className="section-icon" />
           Trending
         </h3>
-        <div className="search-container">
-          <FiSearch className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search trends..."
-            value={searchTerm}
-            onChange={handleSearch}
-            className="search-input"
-          />
-        </div>
         {trendingTopics.map(topic => {
           const CategoryIcon = topic.categoryIcon;
           return (

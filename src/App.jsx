@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -14,9 +14,11 @@ import BookmarkedPosts from './components/BookmarkedPosts';
 import LoadingSpinner from './components/LoadingSpinner';
 import './App.css';
 
-function App() {
+function AppContent() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const hideRightSidebarPaths = [];
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -44,27 +46,32 @@ function App() {
     return <Auth />;
   }
 
+  const shouldShowRightSidebar = !hideRightSidebarPaths.includes(location.pathname);
+
+  return (
+    <div className="app-container" data-page={location.pathname.substring(1) || 'home'}>
+      <Sidebar user={user} />
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={<Home user={user} />} />
+          <Route path="/profile" element={<ProfilePage user={user} />} />
+          <Route path="/profile/:userId" element={<ProfilePage user={user} />} />
+          <Route path="/messages" element={<MessagesPage user={user} />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/more" element={<More />} />
+          <Route path="/bookmarks" element={<BookmarkedPosts userId={user.uid} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+      {shouldShowRightSidebar && <RightSidebar />}
+    </div>
+  );
+}
+
+function App() {
   return (
     <Router>
-      <div className="app-container">
-        <Sidebar user={user} />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Home user={user} />} />
-            <Route path="/profile" element={<ProfilePage user={user} />} />
-            <Route path="/profile/:userId" element={<ProfilePage user={user} />} />
-            <Route path="/messages" element={<MessagesPage user={user} />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/more" element={<More />} />
-            <Route 
-              path="/bookmarks" 
-              element={<BookmarkedPosts userId={user.uid} />} 
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-        <RightSidebar />
-      </div>
+      <AppContent />
     </Router>
   );
 }
