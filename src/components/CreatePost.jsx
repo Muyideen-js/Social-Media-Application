@@ -1,151 +1,161 @@
-import { useState, useRef } from 'react';
-import { db, storage } from '../firebase';
+import { useState } from 'react';
+import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { BiImageAdd, BiVideoPlus, BiSmile } from 'react-icons/bi';
+import { IoImageOutline, IoHappyOutline } from 'react-icons/io5';
+import { RiUserLine, RiUserFollowLine, RiUserHeartLine } from 'react-icons/ri';
 import EmojiPicker from 'emoji-picker-react';
+import CustomAlert from './CustomAlert';
 import '../styles/CreatePost.css';
 
-function CreatePost({ user, onPostCreated }) {
+function CreatePost({ user, onTabChange }) {
   const [content, setContent] = useState('');
-  const [media, setMedia] = useState(null);
-  const [mediaPreview, setMediaPreview] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const fileInputRef = useRef(null);
-  const emojiButtonRef = useRef(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [activeTab, setActiveTab] = useState('you');
 
-  const handleMediaChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setMedia(file);
-      const previewUrl = URL.createObjectURL(file);
-      setMediaPreview(previewUrl);
-    }
-  };
-
-  const handleEmojiClick = (emojiData) => {
-    setContent(prev => prev + emojiData.emoji);
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    onTabChange(tab); // Pass the active tab to parent component
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!content.trim() && !media) return;
+    if (!content.trim() || isLoading) return;
 
+    setIsLoading(true);
     try {
-      let mediaUrl = '';
-      if (media) {
-        const storageRef = ref(storage, `posts/${Date.now()}_${media.name}`);
-        await uploadBytes(storageRef, media);
-        mediaUrl = await getDownloadURL(storageRef);
-      }
-
-      await addDoc(collection(db, 'posts'), {
-        content,
-        mediaUrl,
-        mediaType: media?.type.includes('image') ? 'image' : 'video',
+      const postData = {
+        userId: user.uid,
         authorId: user.uid,
-        authorName: user.displayName,
-        authorPhoto: user.photoURL,
+        content: content.trim(),
         createdAt: serverTimestamp(),
         likes: 0,
         likedBy: [],
         comments: [],
-        tags: []
-      });
+        authorName: user.displayName,
+        authorPhoto: user.photoURL,
+        postType: activeTab
+      };
 
+      await addDoc(collection(db, 'posts'), postData);
       setContent('');
-      setMedia(null);
-      setMediaPreview('');
-      if (onPostCreated) onPostCreated();
+      setShowAlert(true);
+      
+      setTimeout(() => {
+        setShowAlert(false);
+      }, 3000);
+      
     } catch (error) {
       console.error('Error creating post:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return (
-    <div className="create-post">
-      <div className="create-post-header">
-        <div className="user-info">
-          <img src={user.photoURL} alt={user.displayName} className="user-avatar" />
-          <span className="user-name">{user.displayName}</span>
-        </div>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="create-post-form">
-        <textarea 
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="create-post-input"
-          placeholder="What's on your mind?"
-          maxLength={280}
-        />
-        
-        {mediaPreview && (
-          <div className="media-preview">
-            {media?.type.includes('image') ? (
-              <img src={mediaPreview} alt="Preview" />
-            ) : (
-              <video src={mediaPreview} controls />
-            )}
-            <button 
-              type="button" 
-              className="remove-media"
-              onClick={() => {
-                setMedia(null);
-                setMediaPreview('');
-              }}
-            >
-              ×
-            </button>
-          </div>
-        )}
+  const onEmojiClick = (emojiObject) => {
+    setContent(prevContent => prevContent + emojiObject.emoji);
+    setShowEmojiPicker(false);
+  };
 
-        <div className="create-post-actions">
-          <div className="media-upload">
-            <input
-              type="file"
-              accept="image/*,video/*"
-              onChange={handleMediaChange}
-              ref={fileInputRef}
-              style={{ display: 'none' }}
+  return (
+    <>
+      <div className="post-tabs-container">
+        <button 
+          className={`tab-btn ${activeTab === 'you' ? 'active' : ''}`}
+          onClick={() => handleTabChange('you')}
+        >
+          <RiUserLine />
+          <span>For You</span>
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'following' ? 'active' : ''}`}
+          onClick={() => handleTabChange('following')}
+        >
+          <RiUserFollowLine />
+          <span>Following</span>
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'followers' ? 'active' : ''}`}
+          onClick={() => handleTabChange('followers')}
+        >
+          <RiUserHeartLine />
+          <span>Followers</span>
+        </button>
+      </div>
+
+      <div className="create-post">
+        <div className="create-post-header">
+          <img 
+            src={user?.photoURL} 
+            alt={user?.displayName} 
+            className="user-avatar"
+          />
+          <span className="user-name">{user?.displayName}</span>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="post-input-container">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={`What's on your mind, ${user?.displayName?.split(' ')[0]}?`}
+              className="post-input"
             />
-            <button 
-              type="button" 
-              className="media-upload-button"
-              onClick={() => fileInputRef.current.click()}
-            >
-              <BiImageAdd className="button-icon" />
-              <span className="button-text">Media</span>
-            </button>
-            <div className="emoji-picker-container" ref={emojiButtonRef}>
+          </div>
+
+          <div className="post-actions">
+            <div className="post-tools">
               <button 
-                type="button" 
-                className="media-upload-button"
+                type="button"
+                className="tool-btn"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               >
-                <BiSmile className="button-icon" />
-                <span className="button-text">Emoji</span>
+                <IoHappyOutline />
+                <span className="tooltip">Add emoji</span>
               </button>
-              {showEmojiPicker && (
-                <div className="emoji-picker-wrapper">
-                  <EmojiPicker
-                    onEmojiClick={handleEmojiClick}
-                    theme="dark"
-                  />
-                </div>
-              )}
+
+              <button 
+                type="button"
+                className="tool-btn disabled"
+                title="Media uploads require Firebase Storage (paid plan)"
+              >
+                <IoImageOutline />
+                <span className="tooltip">Media upload (coming soon)</span>
+              </button>
             </div>
+
+            <button 
+              type="submit" 
+              className="post-btn"
+              disabled={isLoading || !content.trim()}
+            >
+              {isLoading ? 'Posting...' : 'Post'}
+            </button>
           </div>
-          <button 
-            type="submit" 
-            className={`post-button ${!content.trim() && !media ? 'disabled' : ''}`}
-            disabled={!content.trim() && !media}
-          >
-            Post
-          </button>
-        </div>
-      </form>
-    </div>
+
+          {showEmojiPicker && (
+            <div className="emoji-picker-container">
+              <EmojiPicker
+                onEmojiClick={onEmojiClick}
+                theme="dark"
+                width="100%"
+                height={400}
+              />
+            </div>
+          )}
+        </form>
+      </div>
+
+      {showAlert && (
+        <CustomAlert
+          message="Post created successfully! 🎉"
+          type="success"
+          onClose={() => setShowAlert(false)}
+          duration={3000}
+        />
+      )}
+    </>
   );
 }
 

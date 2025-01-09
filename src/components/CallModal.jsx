@@ -5,38 +5,43 @@ import { doc, updateDoc, onSnapshot, setDoc, getDoc, arrayUnion } from 'firebase
 import '../styles/CallModal.css';
 
 function CallModal({ isOpen, onClose, callType, caller, receiver, isIncoming = false }) {
-  const [callStatus, setCallStatus] = useState('initializing');
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [callStatus, setCallStatus] = useState('ringing');
   const [callDuration, setCallDuration] = useState(0);
-  
-  // WebRTC state
+  const timerRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  const peerConnection = useRef(null);
   const localStream = useRef(null);
-  
-  // Add this function to generate a consistent call ID
-  const getCallId = () => {
-    const ids = [caller.uid, receiver.uid].sort();
-    return `${ids[0]}-${ids[1]}`;
-  };
+  const peerConnection = useRef(null);
+  const callDocRef = useRef(null);
+  const cleanupRef = useRef(false);
+
+  console.log('CallModal Props:', { 
+    isOpen, 
+    callType, 
+    caller, 
+    receiver, 
+    isIncoming, 
+    callStatus 
+  });
 
   // Initialize WebRTC connection
   useEffect(() => {
-    if (!isOpen || !caller?.uid || !receiver?.uid) return;
-
     let mounted = true;
+    cleanupRef.current = false;
+    console.log('CallModal useEffect triggered:', { isOpen, caller, receiver });
+
+    if (!isOpen || !caller?.uid || !receiver?.uid) {
+      console.log('Missing required data, not initializing call');
+      return;
+    }
 
     const initializeCall = async () => {
       try {
-        // Validate required data
-        if (!caller.uid || !receiver.uid) {
-          throw new Error('Missing caller or receiver data');
-        }
-
+        if (cleanupRef.current) return;
+        console.log('Initializing call...');
+        
         const callId = [caller.uid, receiver.uid].sort().join('-');
-        const callDoc = doc(db, 'calls', callId);
+        callDocRef.current = doc(db, 'calls', callId);
 
         // Get user media before creating the call document
         const constraints = {
@@ -44,8 +49,9 @@ function CallModal({ isOpen, onClose, callType, caller, receiver, isIncoming = f
           video: callType === 'video'
         };
         
+        console.log('Getting user media...');
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        if (!mounted) {
+        if (!mounted || cleanupRef.current) {
           stream.getTracks().forEach(track => track.stop());
           return;
         }
@@ -69,13 +75,13 @@ function CallModal({ isOpen, onClose, callType, caller, receiver, isIncoming = f
           peerConnection.current.addTrack(track, stream);
         });
 
-        if (!isIncoming) {
-          // Create offer for outgoing calls
+        if (!isIncoming && !cleanupRef.current) {
+          console.log('Creating offer for outgoing call...');
           const offer = await peerConnection.current.createOffer();
           await peerConnection.current.setLocalDescription(offer);
 
           // Create new call document for outgoing calls
-          await setDoc(callDoc, {
+          await setDoc(callDocRef.current, {
             callerUid: caller.uid,
             receiverUid: receiver.uid,
             type: callType,
@@ -87,12 +93,14 @@ function CallModal({ isOpen, onClose, callType, caller, receiver, isIncoming = f
               sdp: offer.sdp
             }
           });
+          
+          setCallStatus('ringing');
         }
 
-        setCallStatus('ringing');
+        console.log('Call initialized successfully');
       } catch (error) {
         console.error('Error initializing call:', error);
-        if (mounted) {
+        if (mounted && !cleanupRef.current) {
           handleEndCall();
         }
       }
@@ -101,217 +109,193 @@ function CallModal({ isOpen, onClose, callType, caller, receiver, isIncoming = f
     initializeCall();
 
     return () => {
+      console.log('Cleanup function called');
       mounted = false;
-      // Cleanup
-      if (localStream.current) {
-        localStream.current.getTracks().forEach(track => track.stop());
-      }
-      if (peerConnection.current) {
-        peerConnection.current.close();
-      }
+      cleanupRef.current = true;
+      cleanup();
     };
   }, [isOpen, callType, isIncoming, caller?.uid, receiver?.uid]);
 
-  // Add proper cleanup when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      if (localStream.current) {
-        localStream.current.getTracks().forEach(track => track.stop());
-      }
-      if (peerConnection.current) {
-        peerConnection.current.close();
-      }
+  const cleanup = () => {
+    console.log('Cleaning up resources...');
+    if (localStream.current) {
+      localStream.current.getTracks().forEach(track => track.stop());
+      localStream.current = null;
     }
-  }, [isOpen]);
+    if (peerConnection.current) {
+      peerConnection.current.close();
+      peerConnection.current = null;
+    }
+  };
 
-  // Listen for remote ICE candidates and offer/answer
-  useEffect(() => {
-    if (!isOpen || !caller?.uid || !receiver?.uid) return;
+  const handleEndCall = async () => {
+    console.log('Ending call...');
+    try {
+      if (!caller?.uid || !receiver?.uid) return;
 
-    const callId = [caller.uid, receiver.uid].sort().join('-');
-    const callDoc = doc(db, 'calls', callId);
-
-    const unsubscribe = onSnapshot(callDoc, async (snapshot) => {
-      const data = snapshot.data();
-      if (!data) return;
-
-      // Handle offer for receiver
-      if (isIncoming && data.offer && !peerConnection.current.currentRemoteDescription) {
-        try {
-          await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.offer));
-          
-          // Create answer only after setting remote description
-          if (data.status === 'ringing') {
-            const answer = await peerConnection.current.createAnswer();
-            await peerConnection.current.setLocalDescription(answer);
-            
-            await updateDoc(callDoc, {
-              answer: {
-                type: answer.type,
-                sdp: answer.sdp
-              },
-              status: 'connected'
-            });
-          }
-        } catch (error) {
-          console.error('Error handling offer:', error);
-        }
+      if (callDocRef.current) {
+        await updateDoc(callDocRef.current, {
+          status: 'ended',
+          endedAt: new Date(),
+          endedBy: caller.uid
+        });
       }
 
-      // Handle answer for caller
-      if (!isIncoming && data.answer && !peerConnection.current.currentRemoteDescription) {
-        try {
-          await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.answer));
-        } catch (error) {
-          console.error('Error setting remote description:', error);
-        }
-      }
+      cleanup();
+      onClose();
+    } catch (error) {
+      console.error('Error ending call:', error);
+      cleanup();
+      onClose();
+    }
+  };
 
-      // Handle ICE candidates
-      if (data.candidates) {
-        try {
-          for (const candidate of data.candidates) {
-            if (!peerConnection.current.remoteDescription) continue;
-            await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-          }
-        } catch (error) {
-          console.error('Error adding ICE candidate:', error);
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, [isOpen, isIncoming, caller?.uid, receiver?.uid]);
-
-  // Update handleAcceptCall to only update status
   const handleAcceptCall = async () => {
     try {
       const callId = [caller.uid, receiver.uid].sort().join('-');
       const callDoc = doc(db, 'calls', callId);
       
+      // Get user media
+      const constraints = {
+        audio: true,
+        video: callType === 'video'
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      localStream.current = stream;
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      // Initialize RTCPeerConnection if not already done
+      if (!peerConnection.current) {
+        peerConnection.current = new RTCPeerConnection({
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
+        });
+
+        // Add tracks to peer connection
+        stream.getTracks().forEach(track => {
+          peerConnection.current.addTrack(track, stream);
+        });
+      }
+
+      // Get the current call data
+      const callSnapshot = await getDoc(callDoc);
+      if (!callSnapshot.exists()) {
+        throw new Error('Call no longer exists');
+      }
+      
+      const callData = callSnapshot.data();
+
+      // Set remote description (offer)
+      await peerConnection.current.setRemoteDescription(new RTCSessionDescription(callData.offer));
+
+      // Create and set local description (answer)
+      const answer = await peerConnection.current.createAnswer();
+      await peerConnection.current.setLocalDescription(answer);
+
+      // Update call document with answer and status
       await updateDoc(callDoc, {
-        status: 'accepted'
+        answer: {
+          type: answer.type,
+          sdp: answer.sdp
+        },
+        status: 'connected'
       });
 
-      setCallStatus('connecting');
+      setCallStatus('connected');
     } catch (error) {
       console.error('Error accepting call:', error);
       handleEndCall();
     }
   };
 
-  // Handle call rejection/ending
-  const handleEndCall = async () => {
-    try {
-      if (!caller?.uid || !receiver?.uid) return;
-
-      const callId = [caller.uid, receiver.uid].sort().join('-');
-      const callDoc = doc(db, 'calls', callId);
-      
-      await updateDoc(callDoc, {
-        status: 'ended',
-        endedAt: new Date(),
-        endedBy: caller.uid,
-        userIds: [caller.uid, receiver.uid] // Add this for security rules
-      });
-
-      // Cleanup resources
-      if (localStream.current) {
-        localStream.current.getTracks().forEach(track => track.stop());
-      }
-      if (peerConnection.current) {
-        peerConnection.current.close();
-      }
-
-      setCallStatus('ended');
-      onClose();
-    } catch (error) {
-      console.error('Error ending call:', error);
-      onClose();
-    }
-  };
-
+  // Add timer functionality
   useEffect(() => {
-    let timer;
     if (callStatus === 'connected') {
-      timer = setInterval(() => {
+      // Start call timer
+      timerRef.current = setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
     }
-    return () => clearInterval(timer);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, [callStatus]);
 
+  // Format duration to MM:SS
   const formatDuration = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Listen for call status changes
+  // Get status message
+  const getStatusMessage = () => {
+    switch (callStatus) {
+      case 'initializing':
+        return 'Initializing...';
+      case 'ringing':
+        return isIncoming ? 'Incoming call...' : 'Ringing...';
+      case 'connecting':
+        return 'Connecting...';
+      case 'connected':
+        return formatDuration(callDuration);
+      case 'ended':
+        return 'Call ended';
+      default:
+        return callStatus;
+    }
+  };
+
+  // Add this useEffect to listen for call status changes
   useEffect(() => {
-    if (!isOpen || !caller?.uid || !receiver?.uid) return;
+    if (!caller?.uid || !receiver?.uid || !callDocRef.current) return;
 
-    const callId = [caller.uid, receiver.uid].sort().join('-');
-    const callDoc = doc(db, 'calls', callId);
-
-    const unsubscribe = onSnapshot(callDoc, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        if (data.status === 'ended') {
-          handleEndCall();
-        } else if (data.status === 'connected') {
-          setCallStatus('connected');
-        }
+    console.log('Setting up call status listener');
+    
+    const unsubscribe = onSnapshot(callDocRef.current, (snapshot) => {
+      if (!snapshot.exists()) return;
+      
+      const callData = snapshot.data();
+      console.log('Call status updated:', callData.status);
+      
+      if (callData.status === 'connected') {
+        setCallStatus('connected');
+        // Start the timer when call is connected
+        startTimer();
+      } else if (callData.status === 'ended') {
+        handleEndCall();
       }
     });
 
     return () => unsubscribe();
-  }, [isOpen, caller?.uid, receiver?.uid]);
-
-  // Add WebRTC connection handlers
-  useEffect(() => {
-    if (!peerConnection.current) return;
-
-    // Handle ICE candidate events
-    peerConnection.current.onicecandidate = async (event) => {
-      if (event.candidate) {
-        try {
-          const callId = [caller.uid, receiver.uid].sort().join('-');
-          const callDoc = doc(db, 'calls', callId);
-          
-          await updateDoc(callDoc, {
-            candidates: arrayUnion(event.candidate.toJSON())
-          });
-        } catch (error) {
-          console.error('Error adding ICE candidate:', error);
-        }
-      }
-    };
-
-    // Handle connection state changes
-    peerConnection.current.onconnectionstatechange = () => {
-      switch(peerConnection.current.connectionState) {
-        case 'connected':
-          setCallStatus('connected');
-          break;
-        case 'disconnected':
-        case 'failed':
-          handleEndCall();
-          break;
-        default:
-          break;
-      }
-    };
   }, [caller?.uid, receiver?.uid]);
 
-  if (!isOpen) return null;
+  // Add this function to start the timer
+  const startTimer = () => {
+    if (timerRef.current) return;
+    
+    timerRef.current = setInterval(() => {
+      setCallDuration(prev => prev + 1);
+    }, 1000);
+  };
 
   return (
     <div className={`call-modal-overlay ${isOpen ? 'show' : ''}`}>
       <div className="call-modal">
         <div className="call-header">
           <h3>{isIncoming ? 'Incoming Call' : 'Calling...'}</h3>
-          <span className="call-type">{callType === 'video' ? 'Video Call' : 'Voice Call'}</span>
+          <span className="call-type">
+            {callType === 'video' ? 'Video Call' : 'Voice Call'}
+          </span>
         </div>
 
         <div className="call-content">
@@ -322,6 +306,9 @@ function CallModal({ isOpen, onClose, callType, caller, receiver, isIncoming = f
               className="call-avatar"
             />
             <h4>{isIncoming ? caller?.displayName : receiver?.displayName}</h4>
+            <div className={`call-status ${callStatus}`}>
+              {getStatusMessage()}
+            </div>
           </div>
 
           {callType === 'video' && (
@@ -332,19 +319,31 @@ function CallModal({ isOpen, onClose, callType, caller, receiver, isIncoming = f
           )}
 
           <div className="call-controls">
-            {isIncoming && callStatus === 'ringing' ? (
+            {console.log('Rendering controls:', { isIncoming, callStatus })}
+            {isIncoming ? (
+              // Always show accept/reject for incoming calls
               <>
-                <button className="accept-call" onClick={handleAcceptCall}>
-                  {callType === 'video' ? <IoVideocamOutline /> : <IoCallOutline />}
+                <button 
+                  className="accept-call" 
+                  onClick={handleAcceptCall}
+                >
+                  <IoCallOutline />
                   Accept
                 </button>
-                <button className="reject-call" onClick={handleEndCall}>
+                <button 
+                  className="reject-call" 
+                  onClick={handleEndCall}
+                >
                   <IoCloseOutline />
                   Decline
                 </button>
               </>
             ) : (
-              <button className="end-call" onClick={handleEndCall}>
+              // Show end call button for outgoing calls
+              <button 
+                className="end-call" 
+                onClick={handleEndCall}
+              >
                 <IoCloseOutline />
                 {callStatus === 'ringing' ? 'Cancel' : 'End Call'}
               </button>

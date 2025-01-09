@@ -12,6 +12,7 @@ import More from './pages/More';
 import RightSidebar from './components/RightSidebar';
 import BookmarkedPosts from './components/BookmarkedPosts';
 import LoadingSpinner from './components/LoadingSpinner';
+import Verification from './pages/Verification';
 import './App.css';
 
 function AppContent() {
@@ -59,6 +60,7 @@ function AppContent() {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/more" element={<More />} />
           <Route path="/bookmarks" element={<BookmarkedPosts userId={user.uid} />} />
+          <Route path="/verification" element={<Verification user={user} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

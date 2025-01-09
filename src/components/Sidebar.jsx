@@ -8,13 +8,14 @@ import {
   IoBookmarkOutline,
   IoPersonOutline,
   IoEllipsisHorizontalCircleOutline,
-  IoLogOutOutline
+  IoLogOutOutline,
+  IoCheckmarkCircleOutline
 } from 'react-icons/io5';
 import '../styles/Sidebar.css';
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-
+import { MdVerified } from "react-icons/md";
 function Sidebar({ user }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
@@ -53,6 +54,7 @@ function Sidebar({ user }) {
       badge: unreadCount > 0 ? unreadCount : null 
     },
     { icon: IoBookmarkOutline, label: 'Bookmarks', path: '/bookmarks' },
+    { icon: MdVerified, label: 'Get Verified', path: '/verification' },
     { icon: IoPersonOutline, label: 'Profile', path: '/profile' },
     { icon: IoEllipsisHorizontalCircleOutline, label: 'More', path: '/more' },
     {

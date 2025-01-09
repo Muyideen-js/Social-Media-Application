@@ -22,25 +22,21 @@ function ChatWindow({ chat, currentUser }) {
   const [incomingCallData, setIncomingCallData] = useState(null);
 
   // Get other participant's info from chat.participants
-  const otherParticipant = chat?.participants?.find(p => p !== currentUser?.uid);
+  const otherParticipant = chat?.participantProfiles 
+    ? Object.values(chat.participantProfiles).find(p => p.uid !== currentUser?.uid)
+    : null;
 
-  // Function to get user data
+  // Update the useEffect to use the profile data directly
   useEffect(() => {
-    if (!otherParticipant) return;
+    if (!otherParticipant) {
+      console.log('No other participant found');
+      return;
+    }
 
-    // Fetch receiver's user data
-    const fetchReceiverData = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', otherParticipant));
-        if (userDoc.exists()) {
-          setReceiver({ uid: userDoc.id, ...userDoc.data() });
-        }
-      } catch (error) {
-        console.error("Error fetching receiver data:", error);
-      }
-    };
-
-    fetchReceiverData();
+    // Since we already have the participant data, set it directly
+    console.log('Setting receiver data:', otherParticipant);
+    setReceiver(otherParticipant);
+    
   }, [otherParticipant]);
 
   // Add click outside handler for emoji picker
@@ -121,7 +117,6 @@ function ChatWindow({ chat, currentUser }) {
   useEffect(() => {
     if (!currentUser?.uid) return;
 
-    // Create a query for calls where current user is the receiver
     const callsRef = collection(db, 'calls');
     const q = query(
       callsRef,
@@ -132,6 +127,7 @@ function ChatWindow({ chat, currentUser }) {
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       snapshot.docChanges().forEach(async (change) => {
         if (change.type === 'added') {
+          console.log('Incoming call detected');
           const callData = change.doc.data();
           
           // Fetch caller data
@@ -148,14 +144,7 @@ function ChatWindow({ chat, currentUser }) {
             setShowCallModal(true);
           }
         }
-        // Handle call ended
-        if (change.type === 'modified' && change.doc.data().status === 'ended') {
-          setShowCallModal(false);
-          setIncomingCallData(null);
-        }
       });
-    }, (error) => {
-      console.error("Error listening for calls:", error);
     });
 
     return () => unsubscribe();
@@ -163,6 +152,7 @@ function ChatWindow({ chat, currentUser }) {
 
   // Handle initiating a call
   const handleCall = (type) => {
+    console.log('Initiating call:', { type, receiver, currentUser, otherParticipant });
     if (!receiver) {
       console.error("Cannot start call: Receiver data not loaded");
       return;
@@ -258,16 +248,18 @@ function ChatWindow({ chat, currentUser }) {
         </button>
       </form>
 
-      {showCallModal && (isIncomingCall ? incomingCallData : receiver) && (
+      {showCallModal && (
         <CallModal
+          key={`call-${Date.now()}`}
           isOpen={showCallModal}
           onClose={() => {
             setShowCallModal(false);
             setIncomingCallData(null);
+            setIsIncomingCall(false);
           }}
           callType={callType}
-          caller={isIncomingCall ? incomingCallData.caller : currentUser}
-          receiver={isIncomingCall ? currentUser : receiver}
+          caller={isIncomingCall ? incomingCallData?.caller : currentUser}
+          receiver={isIncomingCall ? currentUser : otherParticipant}
           isIncoming={isIncomingCall}
         />
       )}

@@ -9,46 +9,42 @@ service cloud.firestore {
     
     // Posts collection rules
     match /posts/{postId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if true;
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
     }
     
     // Chats collection rules
     match /chats/{chatId} {
-      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
-      allow write: if request.auth != null && request.auth.uid in resource.data.participants;
-    }
-
-    // Notifications collection rules
-    match /notifications/{notificationId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && 
+        request.auth.uid in resource.data.userIds;
       allow create: if request.auth != null;
       allow update: if request.auth != null && 
-        (resource.data.toUserId == request.auth.uid || 
-         resource.data.fromUserId == request.auth.uid);
-      allow delete: if request.auth != null && 
-        (resource.data.toUserId == request.auth.uid || 
-         resource.data.fromUserId == request.auth.uid);
+        request.auth.uid in resource.data.userIds;
     }
 
-    // Add these new rules for calls
+    // Calls collection rules
     match /calls/{callId} {
       allow read: if request.auth != null && (
         request.auth.uid == resource.data.callerUid || 
         request.auth.uid == resource.data.receiverUid
       );
-      allow create: if request.auth != null && (
-        request.auth.uid == request.resource.data.callerUid || 
-        request.auth.uid == request.resource.data.receiverUid
-      );
+      allow create: if request.auth != null;
       allow update: if request.auth != null && (
         request.auth.uid == resource.data.callerUid || 
         request.auth.uid == resource.data.receiverUid
       );
-      allow delete: if request.auth != null && (
-        request.auth.uid == resource.data.callerUid || 
-        request.auth.uid == resource.data.receiverUid
-      );
+    }
+
+    // Notifications collection rules
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.toUserId;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && 
+        request.auth.uid == resource.data.toUserId;
     }
   }
 } 

@@ -63,59 +63,68 @@
 }
 
 .call-status {
-  color: #888;
-  margin: 8px 0;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.call-status.initializing {
+  color: #666;
+}
+
+.call-status.ringing {
+  color: #2196f3;
+}
+
+.call-status.connecting {
+  color: #ff9800;
+}
+
+.call-status.connected {
+  color: #4caf50;
+}
+
+.call-status.ended {
+  color: #f44336;
 }
 
 .call-controls {
+  margin-top: 20px;
   display: flex;
-  gap: 16px;
+  gap: 10px;
   justify-content: center;
 }
 
-.control-btn {
-  background: #2a2a2a;
-  border: none;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
+.accept-call,
+.reject-call,
+.end-call {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.control-btn.active {
-  background: #646cff;
-}
-
-.accept-call, .reject-call, .end-call {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
+  gap: 5px;
+  padding: 10px 20px;
+  border-radius: 20px;
   border: none;
-  border-radius: 24px;
-  color: white;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
 }
 
 .accept-call {
-  background: #22c55e;
+  background-color: #4caf50;
+  color: white;
 }
 
-.reject-call, .end-call {
-  background: #ef4444;
+.reject-call,
+.end-call {
+  background-color: #f44336;
+  color: white;
 }
 
 .accept-call:hover {
-  background: #16a34a;
+  background-color: #45a049;
 }
 
-.reject-call:hover, .end-call:hover {
-  background: #dc2626;
+.reject-call:hover,
+.end-call:hover {
+  background-color: #da190b;
 } 

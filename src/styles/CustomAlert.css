@@ -1,0 +1,80 @@
+.custom-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #2a2a2a;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  animation: slideIn 0.3s ease-out;
+  border-left: 4px solid #4caf50;
+  min-width: 300px;
+  pointer-events: auto;
+}
+
+.custom-alert.success {
+  border-left-color: #4caf50;
+  background: #1a1a1a;
+}
+
+.alert-icon {
+  color: #4caf50;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.alert-message {
+  color: #fff;
+  margin: 0;
+  font-size: 0.95rem;
+  flex-grow: 1;
+}
+
+.alert-close {
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.alert-close:hover {
+  color: #fff;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+.custom-alert.hiding {
+  animation: slideOut 0.3s ease-in forwards;
+} 

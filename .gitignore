@@ -23,3 +23,68 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+yarn.lock
+package-lock.json
+
+# Testing
+/coverage
+__tests__
+*.test.js
+*.spec.js
+
+# Production
+/build
+/dist
+dist-ssr
+*.local
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Misc
+.cache
+.temp
+.tmp
+*.bak
+*.backup
+.history
+.firebase/
+firebase-debug.log*
