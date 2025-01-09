@@ -37,7 +37,7 @@
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 12px;
   padding: 0.8rem 1rem;
   color: var(--text-secondary);
   text-decoration: none;
@@ -85,6 +85,9 @@
 }
 
 .nav-item span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.95rem;
   font-weight: 500;
 }
@@ -197,4 +200,25 @@
   background: var(--primary-color);
   border-radius: 50%;
   animation: slideIn 0.3s ease;
-} 
+}
+
+.nav-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background-color: var(--primary-color, #646cff);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 80px;
+}
+  

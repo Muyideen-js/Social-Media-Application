@@ -11,13 +11,47 @@ import {
   IoLogOutOutline
 } from 'react-icons/io5';
 import '../styles/Sidebar.css';
+import { useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 function Sidebar({ user }) {
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
+
+  // Add effect to listen for unread messages
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    // Query chats where user is a participant
+    const chatsRef = collection(db, 'chats');
+    const q = query(
+      chatsRef,
+      where('participants', 'array-contains', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let count = 0;
+      snapshot.docs.forEach(doc => {
+        const chat = doc.data();
+        // Add unread messages from this chat
+        count += chat.unreadCount?.[user.uid] || 0;
+      });
+      setUnreadCount(count);
+    });
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
   const menuItems = [
     { icon: IoHomeSharp, label: 'Home', path: '/' },
     { icon: IoNotificationsOutline, label: 'Notifications', path: '/notifications' },
-    { icon: IoChatbubbleOutline, label: 'Messages', path: '/messages' },
+    { 
+      icon: IoChatbubbleOutline, 
+      label: 'Messages', 
+      path: '/messages',
+      badge: unreadCount > 0 ? unreadCount : null 
+    },
     { icon: IoBookmarkOutline, label: 'Bookmarks', path: '/bookmarks' },
     { icon: IoPersonOutline, label: 'Profile', path: '/profile' },
     { icon: IoEllipsisHorizontalCircleOutline, label: 'More', path: '/more' },
@@ -60,16 +94,19 @@ function Sidebar({ user }) {
         <h1>WiChat</h1>
       </div>
       <nav className="sidebar-nav">
-        {menuItems.map((item) => {
+        {menuItems.map((item, index) => {
           const Icon = item.icon;
           return (
             <Link
-              key={item.path}
+              key={index}
               to={item.path}
               className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
             >
               <Icon className="nav-icon" />
-              <span>{item.label}</span>
+              <span>
+                {item.label}
+                {item.badge && <span className="badge">{item.badge}</span>}
+              </span>
             </Link>
           );
         })}

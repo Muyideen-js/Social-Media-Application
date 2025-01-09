@@ -18,12 +18,11 @@ function AppContent() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
-  const hideRightSidebarPaths = [];
+  const hideRightSidebarPaths = ['/messages'];
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        // Ensure we have all the user data we need
         setUser({
           uid: currentUser.uid,
           email: currentUser.email,
@@ -49,7 +48,7 @@ function AppContent() {
   const shouldShowRightSidebar = !hideRightSidebarPaths.includes(location.pathname);
 
   return (
-    <div className="app-container" data-page={location.pathname.substring(1) || 'home'}>
+    <div className={`app-container ${!shouldShowRightSidebar ? 'messages-layout' : ''}`}>
       <Sidebar user={user} />
       <main className="main-content">
         <Routes>

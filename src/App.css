@@ -77,3 +77,11 @@ body {
     display: none;
   }
 }
+
+.app-container.messages-layout {
+  grid-template-columns: var(--sidebar-width) 1fr;
+}
+
+.app-container.messages-layout .main-content {
+  max-width: calc(100vw - var(--sidebar-width));
+}

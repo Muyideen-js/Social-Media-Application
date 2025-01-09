@@ -1,15 +1,23 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  --bg-dark: #1a1a1a;
+  --bg-hover: #2d2d2d;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+  --primary-color: #646cff;
+  --border-color: #2d2d2d;
+}
 
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #070017;
+/* Make sure these base styles are present */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 

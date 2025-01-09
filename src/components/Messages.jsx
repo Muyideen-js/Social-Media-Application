@@ -5,6 +5,7 @@ import ChatList from './ChatList';
 import ChatWindow from './ChatWindow';
 import { IoMdChatboxes } from 'react-icons/io';
 import '../styles/Messages.css';
+import '../styles/ChatList.css';
 
 function Messages({ currentUser }) {
   const [chats, setChats] = useState([]);
@@ -13,22 +14,38 @@ function Messages({ currentUser }) {
   useEffect(() => {
     if (!currentUser?.uid) return;
 
+    // Listen for chat updates using userIds field
     const q = query(
       collection(db, 'chats'),
-      where('participants', 'array-contains', currentUser.uid),
+      where('userIds', 'array-contains', currentUser.uid),
       orderBy('lastMessageAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const chatsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const chatsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          messages: data.messages || [],
+          lastMessageAt: data.lastMessageAt || new Date(),
+          createdAt: data.createdAt || new Date()
+        };
+      });
+      
       setChats(chatsData);
+      
+      // Update selected chat if it exists
+      if (selectedChat) {
+        const updatedSelectedChat = chatsData.find(chat => chat.id === selectedChat.id);
+        if (updatedSelectedChat) {
+          setSelectedChat(updatedSelectedChat);
+        }
+      }
     });
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedChat?.id]);
 
   return (
     <div className="messages-container">
