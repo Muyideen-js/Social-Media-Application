@@ -1,0 +1,121 @@
+.call-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.call-modal-overlay.show {
+  display: flex;
+}
+
+.call-modal {
+  background-color: #1a1a1a;
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  color: white;
+}
+
+.call-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.call-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.call-type {
+  color: #646cff;
+  font-size: 0.9rem;
+}
+
+.call-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.caller-info {
+  text-align: center;
+}
+
+.caller-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 16px;
+}
+
+.caller-info h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.call-status {
+  color: #888;
+  margin: 8px 0;
+}
+
+.call-controls {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.control-btn {
+  background: #2a2a2a;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.control-btn.active {
+  background: #646cff;
+}
+
+.accept-call, .reject-call, .end-call {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 24px;
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.accept-call {
+  background: #22c55e;
+}
+
+.reject-call, .end-call {
+  background: #ef4444;
+}
+
+.accept-call:hover {
+  background: #16a34a;
+}
+
+.reject-call:hover, .end-call:hover {
+  background: #dc2626;
+} 

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { doc, updateDoc, arrayUnion, onSnapshot, increment } from 'firebase/firestore';
-import { IoSendSharp } from 'react-icons/io5';
+import { doc, updateDoc, arrayUnion, onSnapshot, increment, getDoc, setDoc, collection, query, where } from 'firebase/firestore';
+import { IoSendSharp, IoCallOutline, IoVideocamOutline } from 'react-icons/io5';
 import { BsEmojiSmile } from 'react-icons/bs';
 import EmojiPicker from 'emoji-picker-react';
 import '../styles/ChatWindow.css';
+import CallModal from './CallModal';
 
 const defaultAvatar = 'https://via.placeholder.com/150';
 
@@ -14,6 +15,33 @@ function ChatWindow({ chat, currentUser }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [callType, setCallType] = useState(null);
+  const [isIncomingCall, setIsIncomingCall] = useState(false);
+  const [receiver, setReceiver] = useState(null);
+  const [incomingCallData, setIncomingCallData] = useState(null);
+
+  // Get other participant's info from chat.participants
+  const otherParticipant = chat?.participants?.find(p => p !== currentUser?.uid);
+
+  // Function to get user data
+  useEffect(() => {
+    if (!otherParticipant) return;
+
+    // Fetch receiver's user data
+    const fetchReceiverData = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', otherParticipant));
+        if (userDoc.exists()) {
+          setReceiver({ uid: userDoc.id, ...userDoc.data() });
+        }
+      } catch (error) {
+        console.error("Error fetching receiver data:", error);
+      }
+    };
+
+    fetchReceiverData();
+  }, [otherParticipant]);
 
   // Add click outside handler for emoji picker
   useEffect(() => {
@@ -89,9 +117,60 @@ function ChatWindow({ chat, currentUser }) {
     });
   }, [chat?.id, currentUser?.uid]);
 
-  const otherParticipant = chat.participantProfiles[
-    chat.participants.find(id => id !== currentUser.uid)
-  ];
+  // Listen for incoming calls
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    // Create a query for calls where current user is the receiver
+    const callsRef = collection(db, 'calls');
+    const q = query(
+      callsRef,
+      where('receiverUid', '==', currentUser.uid),
+      where('status', '==', 'ringing')
+    );
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
+        if (change.type === 'added') {
+          const callData = change.doc.data();
+          
+          // Fetch caller data
+          const callerDoc = await getDoc(doc(db, 'users', callData.callerUid));
+          if (callerDoc.exists()) {
+            const callerData = { uid: callerDoc.id, ...callerDoc.data() };
+            
+            setIncomingCallData({
+              ...callData,
+              caller: callerData
+            });
+            setCallType(callData.type);
+            setIsIncomingCall(true);
+            setShowCallModal(true);
+          }
+        }
+        // Handle call ended
+        if (change.type === 'modified' && change.doc.data().status === 'ended') {
+          setShowCallModal(false);
+          setIncomingCallData(null);
+        }
+      });
+    }, (error) => {
+      console.error("Error listening for calls:", error);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser?.uid]);
+
+  // Handle initiating a call
+  const handleCall = (type) => {
+    if (!receiver) {
+      console.error("Cannot start call: Receiver data not loaded");
+      return;
+    }
+    setCallType(type);
+    setIsIncomingCall(false);
+    setShowCallModal(true);
+  };
 
   const onEmojiClick = (emojiObject) => {
     setMessage(prevMsg => prevMsg + emojiObject.emoji);
@@ -116,10 +195,18 @@ function ChatWindow({ chat, currentUser }) {
         <div className="chat-user-info">
           <img 
             src={otherParticipant?.photoURL || defaultAvatar} 
-            alt={otherParticipant?.displayName || 'User'} 
-            className="chat-user-avatar"
+            alt={otherParticipant?.displayName} 
+            className="chat-avatar"
           />
-          <h3>{otherParticipant?.displayName || otherParticipant?.email || 'User'}</h3>
+          <span className="chat-username">{otherParticipant?.displayName}</span>
+        </div>
+        <div className="chat-actions">
+          <button className="call-button" onClick={() => handleCall('voice')}>
+            <IoCallOutline />
+          </button>
+          <button className="call-button" onClick={() => handleCall('video')}>
+            <IoVideocamOutline />
+          </button>
         </div>
       </div>
 
@@ -170,6 +257,20 @@ function ChatWindow({ chat, currentUser }) {
           <IoSendSharp />
         </button>
       </form>
+
+      {showCallModal && (isIncomingCall ? incomingCallData : receiver) && (
+        <CallModal
+          isOpen={showCallModal}
+          onClose={() => {
+            setShowCallModal(false);
+            setIncomingCallData(null);
+          }}
+          callType={callType}
+          caller={isIncomingCall ? incomingCallData.caller : currentUser}
+          receiver={isIncomingCall ? currentUser : receiver}
+          isIncoming={isIncomingCall}
+        />
+      )}
     </div>
   );
 }
