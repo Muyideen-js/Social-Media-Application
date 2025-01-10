@@ -14,7 +14,6 @@ function Messages({ currentUser }) {
   useEffect(() => {
     if (!currentUser?.uid) return;
 
-    // Listen for chat updates using userIds field
     const q = query(
       collection(db, 'chats'),
       where('userIds', 'array-contains', currentUser.uid),

@@ -8,13 +8,11 @@
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  z-index: 100;
+  gap: 1rem;
 }
 
-/* Logo Section */
 .logo {
-  padding: 0.5rem;
+  padding: 0 0.5rem;
 }
 
 .logo h1 {
@@ -66,13 +64,11 @@
 }
 
 .nav-item.active {
-  background: rgba(100, 108, 255, 0.1);
-  color: var(--primary-color);
+  background: var(--primary-color);
+  color: var(--text-primary);
 }
 
-.nav-item.active::before {
-  transform: scaleY(1);
-}
+
 
 .nav-icon {
   font-size: 1.3rem;
@@ -222,76 +218,83 @@
   margin-left: 80px;
 }
 
-.sidebar-item:hover .verification-badge {
-  background: #646cff;
+/* New icon actions styling */
+.icon-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  margin-top: auto;
 }
 
-.verification-badge {
-  background: #4caf50;
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 0 12px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.live-button {
+  background: #ff4444;
   color: white;
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 12px;
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-weight: 600;
-  transition: all 0.3s ease;
 }
 
-/* Verification item specific styles */
-.sidebar-item:has(.verification-badge) {
-  position: relative;
-  overflow: visible;
+.live-button:hover {
+  background: #ff2222;
+  transform: scale(1.05);
 }
 
-.sidebar-item:has(.verification-badge)::after {
-  content: '';
+.create-button {
+  background: var(--primary-color);
+  color: var(--text-primary);
+}
+
+.create-button:hover {
+  color: white;
+  transform: scale(1.05);
+}
+
+.icon-button .nav-icon {
+  font-size: 18px;
+}
+
+.icon-tooltip {
   position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  padding: 1px;
-  background: linear-gradient(45deg, #4caf50, #45a049);
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
 }
 
-.sidebar-item:has(.verification-badge):hover::after {
+.icon-button:hover .icon-tooltip {
   opacity: 1;
+  visibility: visible;
+  bottom: -35px;
 }
 
-/* Active state for verification item */
-.sidebar-item.active:has(.verification-badge) {
-  background: linear-gradient(45deg, #4caf50, #45a049);
-}
-
-.sidebar-item.active:has(.verification-badge) svg {
-  color: white;
-}
-
-/* Animation for the badge */
-@keyframes pulse {
-  0% { transform: translateY(-50%) scale(1); }
-  50% { transform: translateY(-50%) scale(1.1); }
-  100% { transform: translateY(-50%) scale(1); }
-}
-
-.verification-badge {
-  animation: pulse 2s infinite;
-}
-
-/* Hover effect for verification item */
-.sidebar-item:has(.verification-badge):hover {
-  background: rgba(76, 175, 80, 0.1);
-}
-
-.sidebar-item:has(.verification-badge):hover svg {
-  color: #4caf50;
+.icon-button .sidebar-icon {
+  font-size: 20px;
 }
   

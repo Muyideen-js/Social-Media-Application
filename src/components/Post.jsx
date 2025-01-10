@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
-import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, addDoc, collection, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, addDoc, collection, serverTimestamp, getDoc, increment } from 'firebase/firestore';
 import { FaTrash, FaHeart, FaRegHeart, FaComment, FaRetweet, FaBookmark, FaRegBookmark } from 'react-icons/fa';
 import '../styles/Post.css';
+import { VerificationBadge } from './VerificationBadge';
 
 function Post({ post, currentUserId }) {
   const navigate = useNavigate();
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(post.likedBy?.includes(currentUserId) || false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [userVerification, setUserVerification] = useState(null);
 
   const handleProfileClick = (userId) => {
     if (userId === currentUserId) {
@@ -58,43 +60,29 @@ function Post({ post, currentUserId }) {
   const handleLike = async () => {
     if (!currentUserId) return;
 
+    // Optimistically update UI
+    setIsLiked(!isLiked);
+    setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+
     try {
       const postRef = doc(db, 'posts', post.id);
       
-      if (isLiked) {
-        // Unlike post
+      if (!isLiked) {
         await updateDoc(postRef, {
-          likes: likeCount - 1,
-          likedBy: arrayRemove(currentUserId)
-        });
-        setLikeCount(prev => prev - 1);
-      } else {
-        // Like post
-        await updateDoc(postRef, {
-          likes: likeCount + 1,
+          likes: increment(1),
           likedBy: arrayUnion(currentUserId)
         });
-        setLikeCount(prev => prev + 1);
-
-        // Create notification for post author
-        if (post.authorId !== currentUserId) {
-          await addDoc(collection(db, 'notifications'), {
-            type: 'like',
-            postId: post.id,
-            postContent: post.content?.substring(0, 50) + '...',
-            fromUserId: currentUserId,
-            fromUserName: auth.currentUser.displayName,
-            fromUserPhoto: auth.currentUser.photoURL,
-            toUserId: post.authorId,
-            createdAt: serverTimestamp(),
-            read: false
-          });
-        }
+      } else {
+        await updateDoc(postRef, {
+          likes: increment(-1),
+          likedBy: arrayRemove(currentUserId)
+        });
       }
-      
-      setIsLiked(!isLiked);
     } catch (error) {
+      // Revert UI if operation fails
       console.error('Error updating like:', error);
+      setIsLiked(!isLiked);
+      setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
     }
   };
 
@@ -132,6 +120,52 @@ function Post({ post, currentUserId }) {
     }
   };
 
+  useEffect(() => {
+    // Debug logging
+    console.log('Post data:', post);
+    console.log('Verification status:', post.userVerified);
+    console.log('Verification type:', post.verificationType);
+  }, [post]);
+
+  useEffect(() => {
+    const fetchUserVerification = async () => {
+      try {
+        const userRef = doc(db, 'users', post.userId);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          console.log('User verification data:', userData);
+          setUserVerification({
+            verified: userData.verified || false,
+            type: userData.verificationType || 'user'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user verification:', error);
+      }
+    };
+
+    if (post.userId) {
+      fetchUserVerification();
+    }
+  }, [post.userId]);
+
+  // Function to format content with hashtags
+  const formatContent = (text) => {
+    // Split content by spaces and process each word
+    return text.split(/(\s+)/).map((word, index) => {
+      if (word.startsWith('#')) {
+        return (
+          <span key={index} className="hashtag">
+            {word}
+          </span>
+        );
+      }
+      return word;
+    });
+  };
+
   return (
     <div className="post">
       <div className="post-header">
@@ -139,28 +173,31 @@ function Post({ post, currentUserId }) {
           src={post.authorPhoto} 
           alt={post.authorName} 
           className="avatar"
-          onClick={() => handleProfileClick(post.authorId)}
+          onClick={() => handleProfileClick(post.userId)}
           style={{ cursor: 'pointer' }}
         />
         <div className="post-info">
           <h4 
-            onClick={() => handleProfileClick(post.authorId)}
+            onClick={() => handleProfileClick(post.userId)}
             style={{ cursor: 'pointer' }}
             className="author-name"
           >
             {post.authorName}
+            {userVerification?.verified && (
+              <VerificationBadge type={userVerification.type} />
+            )}
           </h4>
           <span>{new Date(post.createdAt?.toDate()).toLocaleString()}</span>
         </div>
-        {post.authorId === currentUserId && (
-          <button onClick={handleDelete} className="delete-post-btn">
+        {post.userId === currentUserId && (
+          <button onClick={handleDelete} className="delete-button">
             <FaTrash />
           </button>
         )}
       </div>
       
       <div className="post-content">
-        <p>{post.content}</p>
+        {formatContent(post.content)}
         {post.mediaUrl && (
           post.mediaType === 'image' ? (
             <img src={post.mediaUrl} alt="Post media" />

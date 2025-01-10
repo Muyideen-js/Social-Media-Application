@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { IoImageOutline, IoHappyOutline } from 'react-icons/io5';
+import { db, auth } from '../firebase';
+import { collection, addDoc, serverTimestamp, getDoc, doc } from 'firebase/firestore';
+import { IoImageOutline, IoHappyOutline, IoClose, IoSendOutline, IoCheckmarkCircle } from 'react-icons/io5';
 import { RiUserLine, RiUserFollowLine, RiUserHeartLine } from 'react-icons/ri';
 import EmojiPicker from 'emoji-picker-react';
 import CustomAlert from './CustomAlert';
@@ -12,7 +12,8 @@ function CreatePost({ user, onTabChange }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
-  const [activeTab, setActiveTab] = useState('you');
+  const [activeTab, setActiveTab] = useState('foryou');
+  const [mediaPreview, setMediaPreview] = useState(null);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -25,19 +26,28 @@ function CreatePost({ user, onTabChange }) {
 
     setIsLoading(true);
     try {
+      const userId = auth.currentUser.uid;
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+
       const postData = {
-        userId: user.uid,
-        authorId: user.uid,
+        userId: userId,
+        authorId: userId,
         content: content.trim(),
         createdAt: serverTimestamp(),
         likes: 0,
         likedBy: [],
         comments: [],
-        authorName: user.displayName,
-        authorPhoto: user.photoURL,
-        postType: activeTab
+        authorName: auth.currentUser.displayName,
+        authorPhoto: auth.currentUser.photoURL,
+        postType: activeTab,
+        userVerified: userData?.verified || false,
+        verificationType: userData?.verificationType || 'user'
       };
 
+      console.log('Creating post with verification:', postData);
+      
       await addDoc(collection(db, 'posts'), postData);
       setContent('');
       setShowAlert(true);
@@ -58,104 +68,119 @@ function CreatePost({ user, onTabChange }) {
     setShowEmojiPicker(false);
   };
 
+  const handleMediaUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMediaPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveMedia = () => {
+    setMediaPreview(null);
+  };
+
+  const tabs = [
+    { id: 'foryou', label: 'For You' },
+    { id: 'following', label: 'Following' },
+    { id: 'followers', label: 'Followers' }
+  ];
+
   return (
-    <>
-      <div className="post-tabs-container">
-        <button 
-          className={`tab-btn ${activeTab === 'you' ? 'active' : ''}`}
-          onClick={() => handleTabChange('you')}
-        >
-          <RiUserLine />
-          <span>For You</span>
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === 'following' ? 'active' : ''}`}
-          onClick={() => handleTabChange('following')}
-        >
-          <RiUserFollowLine />
-          <span>Following</span>
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === 'followers' ? 'active' : ''}`}
-          onClick={() => handleTabChange('followers')}
-        >
-          <RiUserHeartLine />
-          <span>Followers</span>
-        </button>
+    <div className="create-post">
+      <div className="post-tabs">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => handleTabChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <div className="create-post">
-        <div className="create-post-header">
-          <img 
-            src={user?.photoURL} 
-            alt={user?.displayName} 
-            className="user-avatar"
-          />
-          <span className="user-name">{user?.displayName}</span>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="post-input-container">
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={`What's on your mind, ${user?.displayName?.split(' ')[0]}?`}
-              className="post-input"
-            />
-          </div>
-
-          <div className="post-actions">
-            <div className="post-tools">
-              <button 
-                type="button"
-                className="tool-btn"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              >
-                <IoHappyOutline />
-                <span className="tooltip">Add emoji</span>
-              </button>
-
-              <button 
-                type="button"
-                className="tool-btn disabled"
-                title="Media uploads require Firebase Storage (paid plan)"
-              >
-                <IoImageOutline />
-                <span className="tooltip">Media upload (coming soon)</span>
-              </button>
-            </div>
-
-            <button 
-              type="submit" 
-              className="post-btn"
-              disabled={isLoading || !content.trim()}
-            >
-              {isLoading ? 'Posting...' : 'Post'}
+      <div className="post-input-container">
+        <textarea
+          className="post-input"
+          placeholder="What's on your mind?"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          maxLength={280}
+        />
+        
+        {mediaPreview && (
+          <div className="media-preview">
+            <img src={mediaPreview} alt="Upload preview" />
+            <button className="remove-media" onClick={handleRemoveMedia}>
+              <IoClose />
             </button>
           </div>
+        )}
+      </div>
 
-          {showEmojiPicker && (
-            <div className="emoji-picker-container">
-              <EmojiPicker
-                onEmojiClick={onEmojiClick}
-                theme="dark"
-                width="100%"
-                height={400}
-              />
-            </div>
-          )}
-        </form>
+      <div className="post-actions">
+        <div className="post-tools">
+          <div className="emoji-picker-container">
+            <button 
+              className="tool-button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            >
+              <IoHappyOutline />
+              <span className="tooltip">Add emoji</span>
+            </button>
+            {showEmojiPicker && (
+              <div className="emoji-picker-wrapper">
+                <EmojiPicker onEmojiSelect={onEmojiClick} />
+              </div>
+            )}
+          </div>
+
+          <div className="media-upload-container">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleMediaUpload}
+              className="media-upload-input"
+              id="media-upload"
+            />
+            <label htmlFor="media-upload" className="tool-button">
+              <IoImageOutline />
+              <span className="tooltip">Add photo</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="post-button-container">
+          <span className={`char-counter ${
+            content.length > 240 ? 'warning' : ''
+          } ${content.length > 270 ? 'error' : ''}`}>
+            {content.length}/280
+          </span>
+          
+          <button 
+            className={`post-button ${isLoading ? 'loading' : ''}`}
+            disabled={!content.trim() || isLoading}
+            onClick={handleSubmit}
+          >
+            {isLoading ? 'Posting...' : 'Post'}
+            {!isLoading && <IoSendOutline />}
+          </button>
+        </div>
       </div>
 
       {showAlert && (
-        <CustomAlert
-          message="Post created successfully! 🎉"
-          type="success"
-          onClose={() => setShowAlert(false)}
-          duration={3000}
-        />
+        <div className="custom-toast">
+          <div className="toast-content">
+            <IoCheckmarkCircle className="toast-icon" />
+            <span>Post created successfully!</span>
+          </div>
+        </div>
       )}
-    </>
+    </div>
   );
 }
 

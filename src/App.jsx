@@ -12,7 +12,6 @@ import More from './pages/More';
 import RightSidebar from './components/RightSidebar';
 import BookmarkedPosts from './components/BookmarkedPosts';
 import LoadingSpinner from './components/LoadingSpinner';
-import Verification from './pages/Verification';
 import './App.css';
 
 function AppContent() {
@@ -50,7 +49,7 @@ function AppContent() {
 
   return (
     <div className={`app-container ${!shouldShowRightSidebar ? 'messages-layout' : ''}`}>
-      <Sidebar user={user} />
+      {user && <Sidebar user={user} />}
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home user={user} />} />
@@ -60,11 +59,9 @@ function AppContent() {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/more" element={<More />} />
           <Route path="/bookmarks" element={<BookmarkedPosts userId={user.uid} />} />
-          <Route path="/verification" element={<Verification user={user} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      {shouldShowRightSidebar && <RightSidebar />}
     </div>
   );
 }

@@ -1,13 +1,18 @@
 .home {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+  flex: 1;
+  /* margin-left: var(--sidebar-width); */
+  /* margin-right: 380px; */
+  min-height: 100vh;
+  position: relative;
 }
 
 .posts-feed {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .no-posts {
@@ -50,6 +55,99 @@
   margin-top: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
+}
+
+.home-content {
+  padding: 1rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 1200px) {
+  .home {
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .home {
+    margin-left: 70px;
+  }
+}
+
+.no-results {
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(26, 26, 26, 0.95);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  margin: 20px 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.no-results h3 {
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.clear-search {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary-color);
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-search:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.2);
+}
+
+.search-results-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(-2px);
+}
+
+.search-info {
+  flex: 1;
+}
+
+.search-info h2 {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+
+.search-info p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
   

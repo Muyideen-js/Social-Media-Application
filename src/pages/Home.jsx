@@ -1,127 +1,107 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, query, orderBy, getDocs, where, doc, getDoc } from 'firebase/firestore';
-import Post from '../components/Post';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import CreatePost from '../components/CreatePost';
+import Post from '../components/Post';
+import RightSidebar from '../components/RightSidebar';
+import '../styles/Home.css';
+import { IoArrowBack } from 'react-icons/io5';
 
 function Home({ user }) {
   const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('you');
-  const [userDetails, setUserDetails] = useState(null);
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch user details including following/followers
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setUserDetails(userDoc.data());
-        }
-      } catch (error) {
-        console.error('Error fetching user details:', error);
-      }
-    };
+    const q = query(
+      collection(db, 'posts'),
+      orderBy('createdAt', 'desc')
+    );
 
-    fetchUserDetails();
-  }, [user.uid]);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const postsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPosts(postsData);
+    });
 
-  // Fetch posts based on active tab
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      try {
-        let q;
-        
-        switch(activeTab) {
-          case 'following':
-            if (!userDetails?.following?.length) {
-              setPosts([]);
-              setLoading(false);
-              return;
-            }
-            q = query(
-              collection(db, 'posts'),
-              where('userId', 'in', userDetails.following),
-              orderBy('createdAt', 'desc')
-            );
-            break;
-            
-          case 'followers':
-            if (!userDetails?.followers?.length) {
-              setPosts([]);
-              setLoading(false);
-              return;
-            }
-            q = query(
-              collection(db, 'posts'),
-              where('userId', 'in', userDetails.followers),
-              orderBy('createdAt', 'desc')
-            );
-            break;
-            
-          case 'you':
-          default:
-            q = query(
-              collection(db, 'posts'),
-              orderBy('createdAt', 'desc')
-            );
-            break;
-        }
+    return () => unsubscribe();
+  }, []);
 
-        const querySnapshot = await getDocs(q);
-        const fetchedPosts = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-
-        console.log(`Fetched ${fetchedPosts.length} posts for tab: ${activeTab}`);
-        setPosts(fetchedPosts);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-        setPosts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (userDetails || activeTab === 'you') {
-      fetchPosts();
-    }
-  }, [activeTab, userDetails, user.uid]);
-
-  const handleTabChange = (newTab) => {
-    console.log('Tab changed to:', newTab);
-    setActiveTab(newTab);
+  const handleHashtagSearch = async (results, term) => {
+    setIsLoading(true);
+    setSearchTerm(term);
+    
+    // Add a small delay to show loading state
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    setSearchResults(results);
+    setIsLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="loading">
-        <div className="loading-spinner"></div>
-        <p>Loading posts...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="home-container">
-      <CreatePost user={user} onTabChange={handleTabChange} />
-      <div className="posts-container">
-        {posts.length > 0 ? (
-          posts.map((post) => (
-            <Post key={post.id} post={post} currentUserId={user.uid} />
-          ))
+    <div className="home">
+      <div className="home-content">
+        {searchResults !== null ? (
+          <>
+            <div className="search-results-header">
+              <button 
+                className="back-button"
+                onClick={() => {
+                  setSearchResults(null);
+                  setSearchTerm('');
+                }}
+              >
+                <IoArrowBack />
+              </button>
+              <div className="search-info">
+                <h2>Search Results</h2>
+                {searchTerm && <p>Showing posts with #{searchTerm}</p>}
+              </div>
+            </div>
+            <div className="posts-feed">
+              {isLoading ? (
+                <div className="loading">
+                  <div className="loading-spinner"></div>
+                  <p>Loading results...</p>
+                </div>
+              ) : searchResults.length > 0 ? (
+                searchResults.map(post => (
+                  <Post key={post.id} post={post} currentUserId={user?.uid} />
+                ))
+              ) : (
+                <div className="no-results">
+                  <h3>No posts found with #{searchTerm}</h3>
+                  <button 
+                    className="clear-search"
+                    onClick={() => {
+                      setSearchResults(null);
+                      setSearchTerm('');
+                    }}
+                  >
+                    Clear Search
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         ) : (
-          <div className="no-posts">
-            {activeTab === 'following' 
-              ? "You're not following anyone yet. Follow some users to see their posts!"
-              : activeTab === 'followers'
-              ? "No posts from your followers yet."
-              : "No posts yet. Be the first to post something!"}
-          </div>
+          <>
+            <CreatePost user={user} />
+            <div className="posts-feed">
+              {posts.map(post => (
+                <Post key={post.id} post={post} currentUserId={user?.uid} />
+              ))}
+            </div>
+          </>
         )}
       </div>
+      <RightSidebar 
+        onHashtagSearch={handleHashtagSearch} 
+        user={user}
+      />
     </div>
   );
 }

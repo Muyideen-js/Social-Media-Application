@@ -26,7 +26,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  padding: 12px;
   position: relative;
 }
 
@@ -36,6 +36,10 @@
   border-radius: 12px;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.post-info {
+  flex: 1;
 }
 
 .post-info h4 {
@@ -163,29 +167,30 @@
   transform: translateY(-1px);
 }
 
-.delete-post-btn {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
+.delete-button {
+  background: transparent;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
-  transition: all 0.3s ease;
-  opacity: 0;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 35px;
 }
 
-.post:hover .delete-post-btn {
-  opacity: 1;
+.delete-button:hover {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+  transform: scale(1.1);
 }
 
-.delete-post-btn:hover {
-  color: #ff4b6b;
-  background: rgba(255, 75, 107, 0.1);
-  transform: translateY(-50%) scale(1.1);
+.delete-button svg {
+  font-size: 16px;
 }
 
 .author-name {
@@ -201,4 +206,16 @@
 .post-header img:hover {
   transform: scale(1.05);
   transition: transform 0.3s ease;
+}
+
+.hashtag {
+  color: var(--primary-color);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hashtag:hover {
+  text-decoration: underline;
+  opacity: 0.8;
 } 

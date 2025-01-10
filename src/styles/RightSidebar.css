@@ -169,38 +169,55 @@
 /* Add these new styles */
 .search-container {
   position: relative;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 25px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0 15px;
+  margin-bottom: 1.5rem;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 15px 12px 10px;
-  border: none;
-  background: transparent;
-  color: white;
-  font-size: 0.9rem;
+  padding: 12px 40px 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 0.95rem;
   transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 
 .search-input:focus {
   outline: none;
-}
-
-.search-container:focus-within {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
 }
 
-.search-icon {
+.search-input::placeholder {
   color: var(--text-secondary);
-  font-size: 1.1rem;
-  margin-right: 8px;
+}
+
+.search-button {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.search-button:hover {
+  color: var(--primary-color);
+}
+
+.search-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .who-to-follow-list {
@@ -337,4 +354,17 @@
 /* Adjust spacing for the first section after search */
 .sidebar-section:first-of-type {
   margin-top: 0;
+}
+
+.search-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: search-spin 0.6s linear infinite;
+}
+
+@keyframes search-spin {
+  to { transform: rotate(360deg); }
 }

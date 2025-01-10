@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
-import { collection, query, limit, getDocs } from 'firebase/firestore';
+import { collection, query, limit, getDocs, where, orderBy } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { FiTrendingUp, FiSearch } from 'react-icons/fi';
 import { IoLocationOutline } from 'react-icons/io5';
@@ -15,8 +15,9 @@ import {
 } from 'react-icons/fa';
 import '../styles/RightSidebar.css';
 
-function RightSidebar() {
+function RightSidebar({ onHashtagSearch, user }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const [trendingTopics, setTrendingTopics] = useState([
     { 
       id: 1, 
@@ -102,18 +103,68 @@ function RightSidebar() {
     fetchSuggestedUsers();
   }, []);
 
+  const handleSearch = async (e) => {
+    if (e.key === 'Enter' || e.type === 'click') {
+      if (!searchTerm.trim()) return;
+      
+      setIsSearching(true);
+      let searchQuery = searchTerm.trim();
+      
+      // Remove # if present at the start
+      if (searchQuery.startsWith('#')) {
+        searchQuery = searchQuery.substring(1);
+      }
+      
+      try {
+        const postsRef = collection(db, 'posts');
+        const q = query(
+          postsRef,
+          orderBy('createdAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const results = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter(post => 
+            post.content.toLowerCase().includes(`#${searchQuery.toLowerCase()}`)
+          );
+        
+        if (typeof onHashtagSearch === 'function') {
+          onHashtagSearch(results, searchQuery);
+        }
+      } catch (error) {
+        console.error('Error searching posts:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    }
+  };
+
   return (
     <div className="right-sidebar">
-      {/* Search Input at the very top */}
       <div className="search-container">
-        <FiSearch className="search-icon" />
         <input
           type="text"
-          placeholder="Search users or posts..."
+          placeholder="Search hashtags..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyPress={handleSearch}
           className="search-input"
         />
+        <button 
+          className="search-button"
+          onClick={handleSearch}
+          disabled={isSearching}
+        >
+          {isSearching ? (
+            <div className="search-loading-spinner"></div>
+          ) : (
+            <FiSearch />
+          )}
+        </button>
       </div>
 
       {/* Trending Section */}

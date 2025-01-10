@@ -2,14 +2,17 @@ import { Link, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { 
-  IoHomeSharp,
+  IoHomeOutline,
   IoNotificationsOutline,
   IoChatbubbleOutline,
   IoBookmarkOutline,
   IoPersonOutline,
   IoEllipsisHorizontalCircleOutline,
   IoLogOutOutline,
-  IoCheckmarkCircleOutline
+  IoCheckmarkCircleOutline,
+  IoSettingsOutline,
+  IoCameraOutline,
+  IoAddOutline
 } from 'react-icons/io5';
 import '../styles/Sidebar.css';
 import { useState, useEffect } from 'react';
@@ -45,7 +48,7 @@ function Sidebar({ user }) {
   }, [user?.uid]);
 
   const menuItems = [
-    { icon: IoHomeSharp, label: 'Home', path: '/' },
+    { icon: IoHomeOutline, label: 'Home', path: '/' },
     { icon: IoNotificationsOutline, label: 'Notifications', path: '/notifications' },
     { 
       icon: IoChatbubbleOutline, 
@@ -57,29 +60,7 @@ function Sidebar({ user }) {
     { icon: MdVerified, label: 'Get Verified', path: '/verification' },
     { icon: IoPersonOutline, label: 'Profile', path: '/profile' },
     { icon: IoEllipsisHorizontalCircleOutline, label: 'More', path: '/more' },
-    {
-      icon: () => null,
-      label: (
-        <button 
-          style={{
-            background: 'linear-gradient(45deg, #FF4B4B, #FF7676)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '24px',
-            padding: '8px 20px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            fontSize: '15px',
-            width: '180px',
-            boxShadow: '0 4px 15px rgba(255, 75, 75, 0.2)',
-            pointerEvents: 'none'
-          }}
-        >
-          Go Live
-        </button>
-      ),
-      path: '/live'
-    }
+   
   ];
 
   const handleSignOut = async () => {
@@ -112,6 +93,15 @@ function Sidebar({ user }) {
             </Link>
           );
         })}
+
+        <div className="action-buttons">
+          <button className="icon-button live-button" title="Go Live">
+            <IoCameraOutline className="nav-icon" />
+          </button>
+          <button className="icon-button create-button" title="Create Post">
+            <IoAddOutline className="nav-icon" />
+          </button>
+        </div>
       </nav>
       <div className="user-section">
         <img src={user.photoURL} alt={user.displayName} className="avatar" />

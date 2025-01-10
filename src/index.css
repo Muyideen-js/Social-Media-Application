@@ -5,6 +5,7 @@
   --text-secondary: #a1a1a1;
   --primary-color: #646cff;
   --border-color: #2d2d2d;
+  --primary-color-rgb: 124, 92, 255;
 }
 
 /* Make sure these base styles are present */

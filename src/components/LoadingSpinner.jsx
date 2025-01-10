@@ -7,7 +7,6 @@ function LoadingSpinner() {
         <div className="spinner-ring"></div>
         <div className="spinner-ring"></div>
         <div className="spinner-ring"></div>
-        <span className="loading-text">Loading...</span>
       </div>
     </div>
   );
